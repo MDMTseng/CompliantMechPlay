@@ -4,19 +4,27 @@ import type { SerializedWorld, SerializedBody, SerializedConstraint } from './ty
 const { Bodies, Body, Constraint, World } = Matter;
 
 export function serializeWorld(world: Matter.World): SerializedWorld {
-  const bodies: SerializedBody[] = world.bodies.map((body) => ({
-    id: body.id,
-    position: { x: body.position.x, y: body.position.y },
-    angle: body.angle,
-    isStatic: body.isStatic,
-    mass: body.mass,
-    inertia: body.inertia,
-    frictionAir: body.frictionAir,
-    vertices: [body.vertices.map((v) => ({ x: v.x, y: v.y }))],
-    render: {
-      fillStyle: body.render.fillStyle,
-    },
-  }));
+  const bodies: SerializedBody[] = world.bodies.map((body) => {
+    // Compute width/height from vertices (all bodies are rectangles)
+    const verts = body.vertices;
+    const width = Math.hypot(verts[1].x - verts[0].x, verts[1].y - verts[0].y);
+    const height = Math.hypot(verts[2].x - verts[1].x, verts[2].y - verts[1].y);
+
+    return {
+      id: body.id,
+      position: { x: body.position.x, y: body.position.y },
+      angle: body.angle,
+      isStatic: body.isStatic,
+      mass: body.mass,
+      inertia: body.inertia,
+      frictionAir: body.frictionAir,
+      width,
+      height,
+      render: {
+        fillStyle: body.render.fillStyle,
+      },
+    };
+  });
 
   const constraints: SerializedConstraint[] = world.constraints
     .filter((c) => c.bodyA && c.bodyB)
@@ -50,13 +58,7 @@ export function deserializeWorld(data: SerializedWorld): Matter.World {
   const idMap = new Map<number, Matter.Body>();
 
   for (const bd of data.bodies) {
-    // Translate vertices to body-local coordinates (relative to position)
-    const localVertices = bd.vertices[0].map((v) => ({
-      x: v.x - bd.position.x,
-      y: v.y - bd.position.y,
-    }));
-
-    const body = Bodies.fromVertices(bd.position.x, bd.position.y, [localVertices], {
+    const body = Bodies.rectangle(bd.position.x, bd.position.y, bd.width, bd.height, {
       isStatic: bd.isStatic,
       frictionAir: bd.frictionAir,
       angle: bd.angle,
@@ -65,14 +67,10 @@ export function deserializeWorld(data: SerializedWorld): Matter.World {
       },
     });
 
-    if (body) {
-      Body.setMass(body, bd.mass);
-      Body.setInertia(body, bd.inertia);
-      Body.setPosition(body, bd.position);
-      Body.setAngle(body, bd.angle);
-      idMap.set(bd.id, body);
-      World.add(world, body);
-    }
+    Body.setMass(body, bd.mass);
+    Body.setInertia(body, bd.inertia);
+    idMap.set(bd.id, body);
+    World.add(world, body);
   }
 
   for (const cd of data.constraints) {

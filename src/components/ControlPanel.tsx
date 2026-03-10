@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { PhysicsEngine } from '../engine/PhysicsEngine';
 import type { InteractionMode } from '../engine/types';
+import type { StressSummary } from '../engine/stress';
 import { ModeToolbar } from './ModeToolbar';
 import { WorldManager } from './WorldManager';
 import { SimulationSliders } from './SimulationSliders';
 import { MassPresets } from './MassPresets';
+import { StressToggle } from './StressToggle';
 
 interface ControlPanelProps {
   engineRef: React.RefObject<PhysicsEngine | null>;
@@ -19,6 +21,9 @@ interface ControlPanelProps {
   onDelete: () => void;
   open: boolean;
   onToggle: () => void;
+  showStress: boolean;
+  onToggleStress: () => void;
+  stressSummary: StressSummary | null;
 }
 
 function Section({
@@ -55,6 +60,9 @@ export function ControlPanel({
   onDelete,
   open,
   onToggle,
+  showStress,
+  onToggleStress,
+  stressSummary,
 }: ControlPanelProps) {
   return (
     <>
@@ -92,6 +100,14 @@ export function ControlPanel({
 
         <Section title="Physics">
           <SimulationSliders engineRef={engineRef} setTimeScale={setTimeScale} />
+        </Section>
+
+        <Section title="Analysis">
+          <StressToggle
+            enabled={showStress}
+            onToggle={onToggleStress}
+            summary={stressSummary}
+          />
         </Section>
       </div>
     </>

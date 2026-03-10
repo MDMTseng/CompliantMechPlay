@@ -43,7 +43,8 @@ export interface SerializedBody {
   mass: number;
   inertia: number;
   frictionAir: number;
-  vertices: Point[][];
+  width: number;
+  height: number;
   render: {
     fillStyle?: string;
   };

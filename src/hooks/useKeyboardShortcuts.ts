@@ -5,6 +5,7 @@ interface KeyboardActions {
   setMode: (mode: InteractionMode) => void;
   saveWorld: () => void;
   toggleDetailPanel: () => void;
+  toggleStress: () => void;
 }
 
 const KEY_TO_MODE: Record<string, InteractionMode> = {
@@ -42,6 +43,8 @@ export function useKeyboardShortcuts(actions: KeyboardActions) {
         actions.saveWorld();
       } else if (e.key === 'd') {
         actions.toggleDetailPanel();
+      } else if (e.key === 'v') {
+        actions.toggleStress();
       }
     };
 

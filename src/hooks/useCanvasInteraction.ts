@@ -12,6 +12,7 @@ import {
   createDragConstraint,
   removeDragConstraint,
 } from '../engine/actions';
+import { computeStress, stressColor, type StressSummary } from '../engine/stress';
 
 const { Body, World } = Matter;
 
@@ -23,12 +24,18 @@ const ROD_THICKNESS = 20;
 export function useCanvasInteraction(
   engineRef: React.RefObject<PhysicsEngine | null>,
   mode: InteractionMode,
+  showStress: boolean,
 ) {
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
+  const showStressRef = useRef(showStress);
+  showStressRef.current = showStress;
+
   const [linkStep, setLinkStep] = useState<LinkStep>(0);
   const [chainSegmentCount, setChainSegmentCount] = useState(0);
+  const [stressSummary, setStressSummary] = useState<StressSummary | null>(null);
+  const stressFrameCounter = useRef(0);
 
   const mouseDownPos = useRef<Point>({ x: 0, y: 0 });
   const latestMousePos = useRef<Point>({ x: 0, y: 0 });
@@ -480,6 +487,93 @@ export function useCanvasInteraction(
         }
       }
 
+      // Stress visualization overlay
+      if (showStressRef.current) {
+        const summary = computeStress(pe.world);
+
+        // Update React state every 6 frames (~10Hz) to avoid excessive re-renders
+        stressFrameCounter.current++;
+        if (stressFrameCounter.current >= 6) {
+          stressFrameCounter.current = 0;
+          setStressSummary(summary);
+        }
+
+        if (summary.maxForce > 0) {
+          for (const cs of summary.constraints) {
+            const t = summary.maxForce > 0 ? cs.force / summary.maxForce : 0;
+            const lineWidth = 1.5 + t * 4;
+
+            // Draw stress-colored line over each constraint
+            ctx.beginPath();
+            ctx.moveTo(cs.anchorA.x, cs.anchorA.y);
+            ctx.lineTo(cs.anchorB.x, cs.anchorB.y);
+            ctx.strokeStyle = stressColor(t, 0.7);
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+
+            // For high-stress constraints, draw a glow
+            if (t > 0.7) {
+              ctx.beginPath();
+              ctx.moveTo(cs.anchorA.x, cs.anchorA.y);
+              ctx.lineTo(cs.anchorB.x, cs.anchorB.y);
+              ctx.strokeStyle = stressColor(t, 0.15);
+              ctx.lineWidth = lineWidth + 6;
+              ctx.stroke();
+            }
+
+            // Show force value on high-stress constraints
+            if (t > 0.5) {
+              const mx = (cs.anchorA.x + cs.anchorB.x) / 2;
+              const my = (cs.anchorA.y + cs.anchorB.y) / 2;
+              ctx.font = '9px -apple-system, BlinkMacSystemFont, sans-serif';
+              ctx.fillStyle = stressColor(t, 0.9);
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.fillText(cs.force.toFixed(1), mx, my - 4);
+            }
+          }
+
+          // Legend in top-right corner
+          const lx = ctx.canvas.width - 160;
+          const ly = 20;
+          ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillStyle = 'rgba(205, 214, 244, 0.8)';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillText('Stress', lx, ly);
+
+          // Gradient bar
+          const barW = 100;
+          const barH = 6;
+          const barY = ly + 16;
+          for (let i = 0; i < barW; i++) {
+            ctx.fillStyle = stressColor(i / barW, 0.8);
+            ctx.fillRect(lx + i, barY, 1, barH);
+          }
+          ctx.fillStyle = 'rgba(205, 214, 244, 0.6)';
+          ctx.font = '9px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textBaseline = 'top';
+          ctx.textAlign = 'left';
+          ctx.fillText('Low', lx, barY + barH + 2);
+          ctx.textAlign = 'right';
+          ctx.fillText('High', lx + barW, barY + barH + 2);
+
+          // Peak values
+          ctx.fillStyle = 'rgba(205, 214, 244, 0.7)';
+          ctx.textAlign = 'left';
+          ctx.fillText(
+            `Peak: ${summary.maxForce.toFixed(1)}  Avg strain: ${(summary.avgStrain * 100).toFixed(1)}%`,
+            lx,
+            barY + barH + 14,
+          );
+        }
+      } else {
+        // Clear stress summary when disabled
+        if (stressSummary) {
+          setStressSummary(null);
+        }
+      }
+
       ctx.restore();
     };
 
@@ -512,5 +606,5 @@ export function useCanvasInteraction(
     setChainSegmentCount(0);
   }, [mode]);
 
-  return { linkStep, chainSegmentCount };
+  return { linkStep, chainSegmentCount, stressSummary };
 }
