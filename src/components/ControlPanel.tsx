@@ -17,7 +17,29 @@ interface ControlPanelProps {
   onSaveNew: () => void;
   onLoad: (name: string) => void;
   onDelete: () => void;
-  detailVisible: boolean;
+  open: boolean;
+  onToggle: () => void;
+}
+
+function Section({
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="section">
+      <div className="section-header" onClick={() => setOpen((v) => !v)}>
+        {title}
+        <span className={`chevron${open ? ' open' : ''}`}>{'\u25B6'}</span>
+      </div>
+      {open && <div className="section-body">{children}</div>}
+    </div>
+  );
 }
 
 export function ControlPanel({
@@ -31,29 +53,29 @@ export function ControlPanel({
   onSaveNew,
   onLoad,
   onDelete,
-  detailVisible,
+  open,
+  onToggle,
 }: ControlPanelProps) {
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: 10,
-        width: '100%',
-        boxSizing: 'border-box',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        borderBottom: '1px solid #ccc',
-      }}
-    >
-      <ModeToolbar mode={mode} setMode={setMode} />
+    <>
+      <button
+        className={`sidebar-toggle${open ? ' open' : ''}`}
+        onClick={onToggle}
+        title={open ? 'Hide sidebar' : 'Show sidebar'}
+      >
+        {open ? '\u2039' : '\u203A'}
+      </button>
 
-      {detailVisible && (
-        <>
+      <div className={`sidebar${open ? '' : ' collapsed'}`}>
+        <div className="sidebar-header">
+          <h1>Mechanism Builder</h1>
+        </div>
+
+        <Section title="Tools">
+          <ModeToolbar mode={mode} setMode={setMode} />
+        </Section>
+
+        <Section title="Worlds">
           <WorldManager
             worldName={worldName}
             worldList={worldList}
@@ -62,10 +84,16 @@ export function ControlPanel({
             onLoad={onLoad}
             onDelete={onDelete}
           />
+        </Section>
+
+        <Section title="Mass">
           <MassPresets engineRef={engineRef} />
+        </Section>
+
+        <Section title="Physics">
           <SimulationSliders engineRef={engineRef} setTimeScale={setTimeScale} />
-        </>
-      )}
-    </div>
+        </Section>
+      </div>
+    </>
   );
 }

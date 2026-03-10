@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
+import './styles.css';
 import type { InteractionMode } from './engine/types';
 import { usePhysicsEngine } from './hooks/usePhysicsEngine';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
@@ -6,15 +7,15 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useWorldPersistence } from './hooks/useWorldPersistence';
 import { Canvas } from './components/Canvas';
 import { ControlPanel } from './components/ControlPanel';
+import { StatusBar } from './components/StatusBar';
 
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<InteractionMode>('move');
-  const [detailVisible, setDetailVisible] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const { engineRef, setTimeScale } = usePhysicsEngine(containerRef);
-
-  useCanvasInteraction(engineRef, mode);
+  const { linkStep, chainSegmentCount } = useCanvasInteraction(engineRef, mode);
 
   const {
     worldName,
@@ -25,23 +26,23 @@ export default function App() {
     deleteWorld,
   } = useWorldPersistence(engineRef);
 
-  const toggleDetailPanel = useCallback(() => {
-    setDetailVisible((v) => !v);
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((v) => !v);
   }, []);
 
   const keyboardActions = useMemo(
     () => ({
       setMode,
       saveWorld,
-      toggleDetailPanel,
+      toggleDetailPanel: toggleSidebar,
     }),
-    [saveWorld, toggleDetailPanel],
+    [saveWorld, toggleSidebar],
   );
 
   useKeyboardShortcuts(keyboardActions);
 
   return (
-    <div style={{ margin: 0, padding: 0, position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <>
       <ControlPanel
         engineRef={engineRef}
         mode={mode}
@@ -53,13 +54,11 @@ export default function App() {
         onSaveNew={saveNewWorld}
         onLoad={loadWorld}
         onDelete={deleteWorld}
-        detailVisible={detailVisible}
+        open={sidebarOpen}
+        onToggle={toggleSidebar}
       />
-      <Canvas
-        engineRef={engineRef}
-        containerRef={containerRef}
-        mode={mode}
-      />
-    </div>
+      <Canvas containerRef={containerRef} sidebarOpen={sidebarOpen} />
+      <StatusBar mode={mode} linkStep={linkStep} chainCount={chainSegmentCount} worldName={worldName} />
+    </>
   );
 }

@@ -30,7 +30,7 @@ export function SimulationSliders({ engineRef, setTimeScale }: SimulationSliders
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <SliderRow
         label="Damping"
         value={damping}
@@ -75,17 +75,17 @@ function SliderRow({
   onChange: (val: number) => void;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-      <label style={{ minWidth: 60 }}>{label}:</label>
+    <div className="slider-row">
+      <span className="slider-label">{label}</span>
       <input
+        className="slider-input"
         type="range"
         min={min}
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={{ flex: 1 }}
       />
-      <span style={{ minWidth: 40 }}>{displayValue}</span>
+      <span className="slider-value">{displayValue}</span>
     </div>
   );
 }
