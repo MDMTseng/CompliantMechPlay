@@ -2,7 +2,7 @@
 
 A 2D physics-based playground for designing and simulating **compliant mechanisms** — structures made of rigid rods connected by springy hinges that transmit motion through elastic deformation rather than traditional joints.
 
-Built with **React + TypeScript + Matter.js** | [Live Demo](#) <!-- replace with deployed URL if available -->
+Built with **React + TypeScript + Matter.js** | [Live Demo](https://MDMTseng.github.io/CompliantMechPlay/)
 
 <video src="assets/play.mp4" width="100%" autoplay loop muted playsinline></video>
 
