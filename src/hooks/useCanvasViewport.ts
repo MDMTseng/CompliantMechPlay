@@ -10,7 +10,8 @@ const CAMERA_MARGIN = 500; // How far past the workspace edge the camera can dri
 const SNAPBACK_DAMPING = 0.08; // Lerp factor per frame — lower = smoother
 
 /**
- * Adds scroll-to-zoom (centered on cursor) and middle-click-drag to pan.
+ * Adds scroll-to-zoom (centered on cursor), middle-click-drag to pan,
+ * and touch gestures (two-finger pan + pinch-to-zoom).
  * Camera smoothly snaps back when panned too far outside the workspace.
  */
 export function useCanvasViewport(
@@ -21,6 +22,12 @@ export function useCanvasViewport(
     lastX: 0,
     lastY: 0,
   });
+  const touchState = useRef<{
+    active: boolean;
+    lastMidX: number;
+    lastMidY: number;
+    lastDist: number;
+  }>({ active: false, lastMidX: 0, lastMidY: 0, lastDist: 0 });
   const zoomLevel = useRef(1);
   const wheelAccum = useRef(0);
   const lastWheelScreenPos = useRef<{ sx: number; sy: number }>({ sx: 0.5, sy: 0.5 });
@@ -206,11 +213,84 @@ export function useCanvasViewport(
       }
     };
 
+    // --- Touch gestures: two-finger pan + pinch-to-zoom ---
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        const midX = (t0.clientX + t1.clientX) / 2;
+        const midY = (t0.clientY + t1.clientY) / 2;
+        const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+        touchState.current = { active: true, lastMidX: midX, lastMidY: midY, lastDist: dist };
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && touchState.current.active) {
+        e.preventDefault();
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        const midX = (t0.clientX + t1.clientX) / 2;
+        const midY = (t0.clientY + t1.clientY) / 2;
+        const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+
+        const bounds = pe!.render.bounds;
+        const rect = canvas.getBoundingClientRect();
+        const viewWidth = bounds.max.x - bounds.min.x;
+        const viewHeight = bounds.max.y - bounds.min.y;
+
+        // Pan
+        const dx = ((midX - touchState.current.lastMidX) / rect.width) * viewWidth;
+        const dy = ((midY - touchState.current.lastMidY) / rect.height) * viewHeight;
+        bounds.min.x -= dx;
+        bounds.min.y -= dy;
+        bounds.max.x -= dx;
+        bounds.max.y -= dy;
+
+        // Pinch zoom
+        if (touchState.current.lastDist > 0 && dist > 0) {
+          const scale = touchState.current.lastDist / dist;
+          const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel.current * scale));
+
+          if (newZoom !== zoomLevel.current) {
+            // Zoom centered on midpoint of two fingers
+            const sx = (midX - rect.left) / rect.width;
+            const sy = (midY - rect.top) / rect.height;
+            const worldX = bounds.min.x + sx * viewWidth;
+            const worldY = bounds.min.y + sy * viewHeight;
+
+            zoomLevel.current = newZoom;
+            const newViewWidth = renderWidth * newZoom;
+            const newViewHeight = renderHeight * newZoom;
+            bounds.min.x = worldX - sx * newViewWidth;
+            bounds.min.y = worldY - sy * newViewHeight;
+            bounds.max.x = bounds.min.x + newViewWidth;
+            bounds.max.y = bounds.min.y + newViewHeight;
+          }
+        }
+
+        touchState.current.lastMidX = midX;
+        touchState.current.lastMidY = midY;
+        touchState.current.lastDist = dist;
+        syncMouse();
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        touchState.current.active = false;
+      }
+    };
+
     // Use capture phase to intercept before Matter.js Mouse handler
     canvas.addEventListener('wheel', onWheel, { passive: false, capture: true });
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
     Matter.Events.on(pe.render, 'afterRender', onAfterRender);
 
     return () => {
@@ -218,6 +298,9 @@ export function useCanvasViewport(
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
       Matter.Events.off(pe.render, 'afterRender', onAfterRender);
     };
   }, [engineRef]);

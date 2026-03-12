@@ -422,3 +422,32 @@ body {
 .canvas-area.full {
   left: 0;
 }
+
+.canvas-area canvas {
+  touch-action: none;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+
+  .sidebar {
+    width: var(--sidebar-width);
+  }
+
+  .canvas-area {
+    left: 0;
+  }
+
+  .sidebar:not(.collapsed) ~ .canvas-area {
+    left: 0;
+  }
+
+  .status-bar {
+    font-size: 11px;
+    padding: 0 8px;
+    gap: 8px;
+  }
+}

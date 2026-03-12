@@ -33,7 +33,14 @@ export class PhysicsEngine {
     this.mouse = Mouse.create(this.render.canvas);
     this.mouseConstraint = MouseConstraint.create(this.engine, {
       mouse: this.mouse,
+      constraint: {
+        // Disable automatic body grabbing — interactions are managed manually
+        stiffness: 0,
+        render: { visible: false },
+      },
     });
+    // Prevent the MouseConstraint from picking up bodies on its own
+    this.mouseConstraint.collisionFilter = { group: -1, category: 0, mask: 0 };
 
     World.add(this.engine.world, this.mouseConstraint);
 

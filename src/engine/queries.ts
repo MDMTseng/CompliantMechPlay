@@ -17,7 +17,9 @@ export function distanceBetween(a: Point, b: Point): number {
 export function findBodyAtPoint(
   bodies: Matter.Body[],
   point: Point,
+  touchMargin = 0,
 ): { body: Matter.Body; relativePoint: Point } | null {
+  // First try exact hit
   for (const body of bodies) {
     if (polyContains(body, point)) {
       return {
@@ -29,6 +31,29 @@ export function findBodyAtPoint(
       };
     }
   }
+
+  // If touchMargin > 0, find the closest body within margin (for touch input)
+  if (touchMargin > 0) {
+    let closest: Matter.Body | null = null;
+    let closestDist = Infinity;
+    for (const body of bodies) {
+      const dist = distanceBetween(body.position, point);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = body;
+      }
+    }
+    if (closest && closestDist <= touchMargin) {
+      return {
+        body: closest,
+        relativePoint: {
+          x: point.x - closest.position.x,
+          y: point.y - closest.position.y,
+        },
+      };
+    }
+  }
+
   return null;
 }
 
