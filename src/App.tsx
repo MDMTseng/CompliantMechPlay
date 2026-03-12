@@ -5,6 +5,7 @@ import { usePhysicsEngine } from './hooks/usePhysicsEngine';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useWorldPersistence } from './hooks/useWorldPersistence';
+import { useCanvasViewport } from './hooks/useCanvasViewport';
 import { Canvas } from './components/Canvas';
 import { ControlPanel } from './components/ControlPanel';
 import { StatusBar } from './components/StatusBar';
@@ -22,6 +23,8 @@ export default function App() {
     showStress,
   );
 
+  const { getCamera, setCamera } = useCanvasViewport(engineRef);
+
   const {
     worldName,
     worldList,
@@ -29,7 +32,7 @@ export default function App() {
     saveNewWorld,
     loadWorld,
     deleteWorld,
-  } = useWorldPersistence(engineRef);
+  } = useWorldPersistence(engineRef, getCamera, setCamera);
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((v) => !v);

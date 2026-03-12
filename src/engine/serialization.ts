@@ -1,5 +1,5 @@
 import Matter from 'matter-js';
-import type { SerializedWorld, SerializedBody, SerializedConstraint } from './types';
+import type { SerializedWorld, SerializedBody, SerializedConstraint, CameraState } from './types';
 
 const { Bodies, Body, Constraint, World } = Matter;
 
@@ -99,9 +99,11 @@ export function deserializeWorld(data: SerializedWorld): Matter.World {
   return world;
 }
 
-export function saveWorldToStorage(name: string, world: Matter.World): void {
+export function saveWorldToStorage(name: string, world: Matter.World, camera?: CameraState): void {
   const worlds = JSON.parse(localStorage.getItem('sim_worlds') || '{}');
-  worlds[name] = serializeWorld(world);
+  const data = serializeWorld(world);
+  if (camera) data.camera = camera;
+  worlds[name] = data;
   localStorage.setItem('sim_worlds', JSON.stringify(worlds));
 }
 

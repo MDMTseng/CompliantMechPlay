@@ -65,8 +65,15 @@ export interface SerializedConstraint {
   };
 }
 
+export interface CameraState {
+  boundsMin: Point;
+  boundsMax: Point;
+  zoom: number;
+}
+
 export interface SerializedWorld {
   bodies: SerializedBody[];
   constraints: SerializedConstraint[];
   gravity: Point;
+  camera?: CameraState;
 }

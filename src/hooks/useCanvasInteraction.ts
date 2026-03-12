@@ -279,6 +279,34 @@ export function useCanvasInteraction(
       const currentMode = modeRef.current;
       ctx.save();
 
+      // Apply viewport transform so overlays align with zoomed/panned world
+      const bounds = pe.render.bounds;
+      const bw = bounds.max.x - bounds.min.x;
+      const bh = bounds.max.y - bounds.min.y;
+      const scaleX = pe.render.options.width! / bw;
+      const scaleY = pe.render.options.height! / bh;
+      ctx.scale(scaleX, scaleY);
+      ctx.translate(-bounds.min.x, -bounds.min.y);
+
+      // Workspace boundary — fill outside area with dark red
+      const wsW = pe.workspaceWidth;
+      const wsH = pe.workspaceHeight;
+      const pad = 10000; // large enough to cover any viewport
+      ctx.fillStyle = '#3B1D1D';
+      // top
+      ctx.fillRect(-pad, -pad, wsW + pad * 2, pad);
+      // bottom
+      ctx.fillRect(-pad, wsH, wsW + pad * 2, pad);
+      // left
+      ctx.fillRect(-pad, 0, pad, wsH);
+      // right
+      ctx.fillRect(wsW, 0, pad, wsH);
+
+      // Border line
+      ctx.strokeStyle = 'rgba(108, 112, 134, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 0, wsW, wsH);
+
       // Add Rod preview
       if (currentMode === 'add' && isAddDragging.current) {
         const a = mouseDownPos.current;

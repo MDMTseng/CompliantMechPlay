@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { PhysicsEngine } from '../engine/PhysicsEngine';
+import type { CameraState } from '../engine/types';
 import {
   saveWorldToStorage,
   loadWorldFromStorage,
@@ -10,6 +11,8 @@ import {
 
 export function useWorldPersistence(
   engineRef: React.RefObject<PhysicsEngine | null>,
+  getCamera?: () => CameraState | null,
+  setCamera?: (camera: CameraState) => void,
 ) {
   const [worldName, setWorldName] = useState<string | null>(null);
   const [worldList, setWorldList] = useState<string[]>([]);
@@ -31,9 +34,9 @@ export function useWorldPersistence(
       return;
     }
 
-    saveWorldToStorage(worldName, pe.world);
+    saveWorldToStorage(worldName, pe.world, getCamera?.() ?? undefined);
     refreshList();
-  }, [engineRef, worldName, refreshList]);
+  }, [engineRef, worldName, refreshList, getCamera]);
 
   const saveNewWorld = useCallback(() => {
     const pe = engineRef.current;
@@ -42,7 +45,7 @@ export function useWorldPersistence(
     const name = prompt('Enter a name for this world:');
     if (!name) return;
 
-    saveWorldToStorage(name, pe.world);
+    saveWorldToStorage(name, pe.world, getCamera?.() ?? undefined);
     setWorldName(name);
     refreshList();
   }, [engineRef, refreshList]);
@@ -57,9 +60,12 @@ export function useWorldPersistence(
 
       const newWorld = deserializeWorld(data);
       pe.replaceWorld(newWorld);
+      if (data.camera && setCamera) {
+        setCamera(data.camera);
+      }
       setWorldName(name);
     },
-    [engineRef],
+    [engineRef, setCamera],
   );
 
   const deleteWorld = useCallback(

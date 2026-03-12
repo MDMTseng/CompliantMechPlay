@@ -1,6 +1,6 @@
 import Matter from 'matter-js';
 
-const { Engine, Render, World, Mouse, MouseConstraint } = Matter;
+const { Engine, Render, World, Mouse, MouseConstraint, Body } = Matter;
 
 export class PhysicsEngine {
   engine: Matter.Engine;
@@ -9,8 +9,10 @@ export class PhysicsEngine {
   mouseConstraint: Matter.MouseConstraint;
   private animFrameId: number | null = null;
   private _timeScale = 1.0;
+  readonly workspaceWidth: number;
+  readonly workspaceHeight: number;
 
-  constructor(container: HTMLElement, width = 2000, height = 1000) {
+  constructor(container: HTMLElement, width = 5000, height = 5000) {
     this.engine = Engine.create();
     this.engine.world.gravity.y = 0;
     this.engine.positionIterations = 8;
@@ -24,6 +26,7 @@ export class PhysicsEngine {
         width,
         height,
         wireframes: false,
+        hasBounds: true,
       },
     });
 
@@ -33,6 +36,23 @@ export class PhysicsEngine {
     });
 
     World.add(this.engine.world, this.mouseConstraint);
+
+    // Clamp bodies back into workspace after each physics update
+    this.workspaceWidth = width;
+    this.workspaceHeight = height;
+    Matter.Events.on(this.engine, 'afterUpdate', () => {
+      const margin = 50;
+      for (const body of this.engine.world.bodies) {
+        if (body.isStatic) continue;
+        const { x, y } = body.position;
+        const clampedX = Math.max(-margin, Math.min(this.workspaceWidth + margin, x));
+        const clampedY = Math.max(-margin, Math.min(this.workspaceHeight + margin, y));
+        if (clampedX !== x || clampedY !== y) {
+          Body.setPosition(body, { x: clampedX, y: clampedY });
+          Body.setVelocity(body, { x: 0, y: 0 });
+        }
+      }
+    });
   }
 
   get world(): Matter.World {
