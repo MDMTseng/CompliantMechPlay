@@ -72,6 +72,10 @@ export function useCanvasInteraction(
       setLinkStep(0);
     };
 
+    // Detect if the device supports touch (used for larger hit targets)
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const touchMargin = isTouchDevice ? 30 : 0;
+
     const onMouseDown = (event: Matter.IMouseEvent<Matter.MouseConstraint>) => {
       const pos = event.mouse.position;
       const mousePos = { x: pos.x, y: pos.y };
@@ -84,7 +88,7 @@ export function useCanvasInteraction(
 
       if (currentMode === 'move' || currentMode === 'no_rotation_move') {
         clearDrag();
-        const hit = findBodyAtPoint(pe.world.bodies, mousePos);
+        const hit = findBodyAtPoint(pe.world.bodies, mousePos, touchMargin);
         if (!hit) return;
         const result = createDragConstraint(
           pe.world,
@@ -99,12 +103,12 @@ export function useCanvasInteraction(
           body: hit.body,
         };
       } else if (currentMode === 'remove') {
-        const hit = findBodyAtPoint(pe.world.bodies, mousePos);
+        const hit = findBodyAtPoint(pe.world.bodies, mousePos, touchMargin);
         if (hit) {
           removeBodyAndConstraints(pe.world, hit.body);
         }
       } else if (currentMode === 'add_link' || currentMode === 'add_weak_link') {
-        const hit = findBodyAtPoint(pe.world.bodies, mousePos);
+        const hit = findBodyAtPoint(pe.world.bodies, mousePos, touchMargin);
         if (!hit) return;
 
         const ls = linkState.current;
@@ -135,7 +139,7 @@ export function useCanvasInteraction(
           resetLinkState();
         }
       } else if (currentMode === 'remove_link') {
-        const hit = findBodyAtPoint(pe.world.bodies, mousePos);
+        const hit = findBodyAtPoint(pe.world.bodies, mousePos, touchMargin);
         if (!hit) return;
 
         const ls = linkState.current;
@@ -153,7 +157,8 @@ export function useCanvasInteraction(
           resetLinkState();
         }
       } else if (currentMode === 'toggle_static') {
-        const closest = findClosestBody(pe.world.bodies, mousePos, 50);
+        const radius = isTouchDevice ? 80 : 50;
+        const closest = findClosestBody(pe.world.bodies, mousePos, radius);
         if (closest) {
           Body.setStatic(closest, !closest.isStatic);
         }
