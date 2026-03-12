@@ -3,7 +3,11 @@
     "allow": [
       "Bash(npm install react react-dom matter-js vite @vitejs/plugin-react typescript @types/react @types/react-dom @types/matter-js)",
       "Bash(npx tsc --noEmit)",
-      "Bash(npx vite build)"
+      "Bash(npx vite build)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh repo:*)"
     ]
   }
 }
