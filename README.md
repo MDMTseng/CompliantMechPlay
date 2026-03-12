@@ -4,6 +4,8 @@ A 2D physics-based playground for designing and simulating **compliant mechanism
 
 Built with **React + TypeScript + Matter.js** | [Live Demo](#) <!-- replace with deployed URL if available -->
 
+https://github.com/user-attachments/assets/REPLACE_WITH_UPLOADED_VIDEO_ID
+
 ---
 
 ## What Is a Compliant Mechanism?
